@@ -16,7 +16,7 @@ func (s byModTimeAsc) Swap(i, j int) {
 }
 
 func (s byModTimeAsc) Less(i, j int) bool {
-	return s[i].ModTime().UnixNano() < s[j].ModTime().UnixNano()
+	return s[i].ModTime().Before(s[j].ModTime())
 }
 
 func SortFileInfosByModTimeAsc(in []os.FileInfo) []os.FileInfo {
