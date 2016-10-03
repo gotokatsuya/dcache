@@ -1,3 +1,8 @@
 # dcache
 
-Disk cache for Golang
+Disk cache for Golang.
+
+## Algorithm
+
+LRU.
+

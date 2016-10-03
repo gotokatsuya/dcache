@@ -5,15 +5,19 @@ import (
 	"encoding/hex"
 	"errors"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"sync"
+	"time"
 )
 
 type Cache struct {
 	sync.RWMutex
 	directory string
 	maxSize   int
+
+	logging bool
 }
 
 func NewCache(dir string, max int) (*Cache, error) {
@@ -31,35 +35,64 @@ func NewCache(dir string, max int) (*Cache, error) {
 	}, nil
 }
 
-func (c *Cache) Get(key string, data []byte) error {
+func (c *Cache) Logging(flag bool) {
+	c.logging = flag
+}
+
+func (c *Cache) log(v interface{}) {
+	if !c.logging {
+		return
+	}
+	log.Println(v)
+}
+
+func (c *Cache) getFileNameByKey(key string) string {
+	k := sha256.Sum256([]byte(key))
+	return path.Join(c.directory, hex.EncodeToString(k[:]))
+}
+
+func (c *Cache) Get(key string, data []byte) bool {
 	c.RLock()
 	defer c.RUnlock()
 	fileName := c.getFileNameByKey(key)
-	file, err := os.Open(path.Join(c.directory, fileName))
+	file, err := os.Open(fileName)
 	if err != nil {
-		return err
+		c.log(err)
+		return false
 	}
 	if _, err := file.Read(data); err != nil {
-		return err
+		c.log(err)
+		return false
 	}
-	return nil
+	if err := c.hit(fileName); err != nil {
+		c.log(err)
+	}
+	return true
 }
 
-func (c *Cache) Set(key string, data []byte) error {
+func (c *Cache) hit(fileName string) error {
+	now := time.Now()
+	return os.Chtimes(fileName, now, now)
+}
+
+func (c *Cache) Set(key string, data []byte) bool {
 	c.Lock()
 	defer c.Unlock()
 	if err := c.removeIfOverMaxSize(); err != nil {
-		return err
+		c.log(err)
+		return false
 	}
 	fileName := c.getFileNameByKey(key)
-	file, err := os.Create(path.Join(c.directory, fileName))
+	file, err := os.Create(fileName)
 	if err != nil {
-		return err
+		c.log(err)
+		return false
 	}
 	if _, err := file.Write(data); err != nil {
-		return err
+		c.log(err)
+		return false
 	}
-	return nil
+	return true
 }
 
 func (c *Cache) removeIfOverMaxSize() error {
@@ -74,16 +107,11 @@ func (c *Cache) removeIfOverMaxSize() error {
 	return os.Remove(path.Join(c.directory, sortedFileInfos[0].Name()))
 }
 
-func (c *Cache) getFileNameByKey(key string) string {
-	k := sha256.Sum256([]byte(key))
-	return hex.EncodeToString(k[:])
-}
-
 func (c *Cache) Remove(key string) error {
 	c.Lock()
 	defer c.Unlock()
 	fileName := c.getFileNameByKey(key)
-	return os.Remove(path.Join(c.directory, fileName))
+	return os.Remove(fileName)
 }
 
 func (c *Cache) Clear() error {

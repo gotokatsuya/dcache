@@ -1,6 +1,7 @@
 package dcache
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -34,21 +35,19 @@ func TestGetSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	const key = "key_1"
-	var data []byte
-	err = cache.Get(key, data)
-	if err == nil {
+	var (
+		key  = "key_1"
+		data []byte
+	)
+
+	if cache.Get(key, data) {
 		t.Fatal("cache already exists")
 	}
-
-	err = cache.Set(key, []byte("hello world"))
-	if err != nil {
-		t.Fatal(err)
+	if !cache.Set(key, []byte("hello world")) {
+		t.Fatal()
 	}
-
-	err = cache.Get(key, data)
-	if err != nil {
-		t.Fatal(err)
+	if !cache.Get(key, data) {
+		t.Fatal()
 	}
 
 	cache.Clear()
@@ -64,27 +63,21 @@ func TestRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	const key = "key_2"
-
-	err = cache.Set(key, []byte("hello world"))
-	if err != nil {
+	var (
+		key  = "key_2"
+		data []byte
+	)
+	if !cache.Set(key, []byte("hello world")) {
+		t.Fatal()
+	}
+	if !cache.Get(key, data) {
+		t.Fatal()
+	}
+	if err := cache.Remove(key); err != nil {
 		t.Fatal(err)
 	}
-
-	var data []byte
-	err = cache.Get(key, data)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = cache.Remove(key)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = cache.Get(key, data)
-	if err == nil {
-		t.Fatal("cache already exists")
+	if cache.Get(key, data) {
+		t.Fatal("cache should be deleted")
 	}
 
 	cache.Clear()
@@ -100,51 +93,70 @@ func TestRemoveIfOverMaxSize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var key = "key_3"
-	err = cache.Set(key, []byte("hello world3"))
+	for i := 3; i <= 7; i++ {
+		key := fmt.Sprintf("key_%d", i)
+		if !cache.Set(key, []byte(fmt.Sprintf("hello world %d", i))) {
+			t.Fatal()
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	var (
+		key  = "key_3"
+		data []byte
+	)
+	if cache.Get(key, data) {
+		t.Fatal("key_3 should be removed")
+	}
+
+	cache.Clear()
+}
+
+func TestHit(t *testing.T) {
+	const (
+		dir  = "test"
+		size = 3
+	)
+	cache, err := NewCache(dir, size)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	time.Sleep(1 * time.Second)
-
-	key = "key_4"
-	err = cache.Set(key, []byte("hello world4"))
-	if err != nil {
-		t.Fatal(err)
+	for i := 3; i <= 5; i++ {
+		key := fmt.Sprintf("key_%d", i)
+		if !cache.Set(key, []byte(fmt.Sprintf("hello world %d", i))) {
+			t.Fatal()
+		}
+		time.Sleep(1 * time.Second)
 	}
 
-	time.Sleep(1 * time.Second)
-
-	key = "key_5"
-	err = cache.Set(key, []byte("hello world5"))
-	if err != nil {
-		t.Fatal(err)
+	var (
+		key  = "key_3"
+		data []byte
+	)
+	if !cache.Get(key, data) {
+		t.Fatal()
 	}
 
-	time.Sleep(1 * time.Second)
-
-	key = "key_6"
-	err = cache.Set(key, []byte("hello world6"))
-	if err != nil {
-		t.Fatal(err)
+	for i := 6; i <= 7; i++ {
+		key := fmt.Sprintf("key_%d", i)
+		if !cache.Set(key, []byte(fmt.Sprintf("hello world %d", i))) {
+			t.Fatal()
+		}
+		time.Sleep(1 * time.Second)
 	}
-
-	time.Sleep(1 * time.Second)
-
-	key = "key_7"
-	err = cache.Set(key, []byte("hello world7"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	time.Sleep(1 * time.Second)
 
 	key = "key_3"
-	var data []byte
-	err = cache.Get(key, data)
-	if err == nil {
-		t.Fatal("key_3 should be removed")
+	if !cache.Get(key, data) {
+		t.Fatal()
+	}
+	key = "key_6"
+	if !cache.Get(key, data) {
+		t.Fatal()
+	}
+	key = "key_7"
+	if !cache.Get(key, data) {
+		t.Fatal()
 	}
 
 	cache.Clear()
