@@ -1,6 +1,8 @@
 package dcache
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -65,17 +67,16 @@ func (c *Cache) removeIfOverMaxSize() error {
 	if err != nil {
 		return err
 	}
-	if len(files) <= c.maxSize {
+	if len(files) < c.maxSize {
 		return nil
 	}
-	sortedFiles := SortFileInfosByModTimeAsc(files)
-	return os.Remove(path.Join(c.directory, sortedFiles[0].Name()))
+	sortedFileInfos := SortFileInfosByModTimeAsc(files)
+	return os.Remove(path.Join(c.directory, sortedFileInfos[0].Name()))
 }
 
 func (c *Cache) getFileNameByKey(key string) string {
-	return key
-	// k := sha256.Sum256([]byte(key))
-	// return hex.EncodeToString(k[:])
+	k := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(k[:])
 }
 
 func (c *Cache) Remove(key string) error {

@@ -1,6 +1,9 @@
 package dcache
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestNewCache(t *testing.T) {
 	const (
@@ -37,7 +40,6 @@ func TestGetSet(t *testing.T) {
 	if err == nil {
 		t.Fatal("cache already exists")
 	}
-	t.Log(err)
 
 	err = cache.Set(key, []byte("hello world"))
 	if err != nil {
@@ -48,7 +50,6 @@ func TestGetSet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(string(data))
 
 	cache.Clear()
 }
@@ -85,7 +86,6 @@ func TestRemove(t *testing.T) {
 	if err == nil {
 		t.Fatal("cache already exists")
 	}
-	t.Log(err)
 
 	cache.Clear()
 }
@@ -93,7 +93,7 @@ func TestRemove(t *testing.T) {
 func TestRemoveIfOverMaxSize(t *testing.T) {
 	const (
 		dir  = "test"
-		size = 2
+		size = 3
 	)
 	cache, err := NewCache(dir, size)
 	if err != nil {
@@ -101,28 +101,44 @@ func TestRemoveIfOverMaxSize(t *testing.T) {
 	}
 
 	var key = "key_3"
-	err = cache.Set(key, []byte("hello world"))
+	err = cache.Set(key, []byte("hello world3"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	time.Sleep(1 * time.Second)
 
 	key = "key_4"
-	err = cache.Set(key, []byte("hello world"))
+	err = cache.Set(key, []byte("hello world4"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	time.Sleep(1 * time.Second)
 
 	key = "key_5"
-	err = cache.Set(key, []byte("hello world"))
+	err = cache.Set(key, []byte("hello world5"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	time.Sleep(1 * time.Second)
+
 	key = "key_6"
-	err = cache.Set(key, []byte("hello world"))
+	err = cache.Set(key, []byte("hello world6"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	time.Sleep(1 * time.Second)
+
+	key = "key_7"
+	err = cache.Set(key, []byte("hello world7"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(1 * time.Second)
 
 	key = "key_3"
 	var data []byte
